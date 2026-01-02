@@ -41,6 +41,8 @@ export default function IdentityCreationPage() {
   const [file, setFile] = useState<File | null>(null)
   const [identityData, setIdentityData] = useState<IdentityResponse | null>(null)
   const [proofData, setProofData] = useState<ProofResponse | null>(null)
+  const [claimType, setClaimType] = useState<string>("credit_score")
+  const [manualValue, setManualValue] = useState<string>("")
 
   const handleConnectWallet = async () => {
     setLoading(true)
@@ -78,6 +80,10 @@ export default function IdentityCreationPage() {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("walletAddress", walletAddress)
+      formData.append("claimType", claimType)
+      if (manualValue) {
+        formData.append("manualValue", manualValue)
+      }
 
       console.log("[v0] Sending proof generation request")
 
@@ -253,13 +259,57 @@ export default function IdentityCreationPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="credential-file">Financial Document</Label>
+                    <Label htmlFor="credential-file">Financial Document (PDF, JSON, or CSV)</Label>
                     <Input id="credential-file" type="file" accept=".json,.csv,.pdf" onChange={handleFileUpload} />
                     {file && (
                       <p className="text-sm text-muted-foreground">
                         Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
                       </p>
                     )}
+                  </div>
+
+                  <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+                    <h4 className="font-medium text-sm">Specify Claim Details (for accurate verification)</h4>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="claim-type">Claim Type</Label>
+                      <select
+                        id="claim-type"
+                        value={claimType}
+                        onChange={(e) => setClaimType(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="credit_score">Credit Score</option>
+                        <option value="account_balance">Account Balance</option>
+                        <option value="income_verification">Income Verification</option>
+                        <option value="credit_history">Credit History</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-value">
+                        Exact Value from PDF
+                        {claimType === "credit_score" && " (e.g., 645, 720)"}
+                        {claimType === "account_balance" && " (e.g., 45000, 75000)"}
+                        {claimType === "income_verification" && " (e.g., 60000, 85000)"}
+                      </Label>
+                      <Input
+                        id="manual-value"
+                        type="number"
+                        placeholder={
+                          claimType === "credit_score"
+                            ? "Enter credit score (300-850)"
+                            : claimType === "account_balance"
+                              ? "Enter account balance"
+                              : "Enter annual income"
+                        }
+                        value={manualValue}
+                        onChange={(e) => setManualValue(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the exact value shown in your PDF to ensure accurate verification
+                      </p>
+                    </div>
                   </div>
 
                   <Alert>

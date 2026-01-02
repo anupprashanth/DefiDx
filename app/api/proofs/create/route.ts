@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     const file = formData.get("file") as File
     const walletAddress = formData.get("walletAddress") as string
     let claimType = (formData.get("claimType") as string) || ""
+    const manualValue = formData.get("manualValue") as string
 
     if (!file) {
       console.error("[v0] No file provided")
@@ -22,18 +23,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Wallet address is required" }, { status: 400 })
     }
 
-    console.log("[v0] Processing file:", file.name, "Size:", file.size, "Initial claim type:", claimType)
+    console.log(
+      "[v0] Processing file:",
+      file.name,
+      "Size:",
+      file.size,
+      "Claim type:",
+      claimType,
+      "Manual value:",
+      manualValue,
+    )
 
     const extractedData = await extractFinancialData(file)
     console.log("[v0] Extracted financial data:", extractedData)
 
-    if (!claimType) {
-      claimType = determineClaimType(extractedData)
-      console.log("[v0] Auto-determined claim type:", claimType)
-    }
+    let claimValue: number | undefined
 
-    const claimValue = getClaimValue(extractedData, claimType)
-    console.log("[v0] Claim value extracted:", claimValue)
+    if (manualValue && manualValue.trim() !== "") {
+      claimValue = Number.parseInt(manualValue)
+      console.log("[v0] Using MANUAL value provided by user:", claimValue)
+
+      // Update extracted data with manual value
+      if (claimType === "credit_score") {
+        extractedData.creditScore = claimValue
+      } else if (claimType === "account_balance") {
+        extractedData.accountBalance = claimValue
+      } else if (claimType === "income_verification") {
+        extractedData.income = claimValue
+      }
+    } else {
+      // Fall back to extracted value
+      if (!claimType) {
+        claimType = determineClaimType(extractedData)
+        console.log("[v0] Auto-determined claim type:", claimType)
+      }
+
+      claimValue = getClaimValue(extractedData, claimType)
+      console.log("[v0] Using extracted claim value:", claimValue)
+    }
 
     // Simulate proof generation process
     await new Promise((resolve) => setTimeout(resolve, 2000))
